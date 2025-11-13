@@ -1,0 +1,121 @@
+void automation.Crear_cliente_cuenta(Int ID)
+{
+cuenta = zoho.crm.getRecordById("Accounts",ID);
+IDzoho = cuenta.get("id");
+info IDzoho;
+username = "todocostura";
+password = "TC0stur4!";
+credentials = username + ":" + password;
+encoded_credentials = zoho.encryption.base64Encode(credentials);
+headers = Map();
+headers.put("Authorization","Basic " + encoded_credentials);
+headers.put("Content-Type","application/json");
+// Datos del cliente
+Codcliente = cuenta.get("Cod_Cliente");
+cliente = Map();
+cliente.put("p_empresa","1");
+cliente.put("p_cod_sucursal","1");
+cliente.put("p_existe_pers","N");
+cliente.put("p_existe_clie","N");
+cliente.put("p_es_fisica","N");
+cliente.put("p_e_mail",cuenta.get("Correo_electr_nico"));
+cliente.put("p_nombre",cuenta.get("Account_Name"));
+cliente.put("p_numeroruc",cuenta.get("Ruc"));
+cliente.put("p_direccion",cuenta.get("Direccion"));
+cliente.put("p_cod_vendedor","1");
+cliente.put("p_numextranjero","");
+cliente.put("p_codpais","1");
+cliente.put("p_area1","021");
+cliente.put("p_telefono1",cuenta.get("Phone"));
+cliente.put("p_tipoimpuesto","");
+// cliente.put("p_fec_nacimiento",cuenta.get("Date_of_Birth"));
+cliente.put("p_nro_casa","0");
+cliente.put("p_comen_insumos",cuenta.get("Comentario_Insumos"));
+cliente.put("p_comen_maquina",cuenta.get("Comentario_Maquinas"));
+cliente.put("p_segmentacion","2");
+cliente.put("p_id_zoho",IDzoho);
+info cliente;
+// OBTENER ID CIUDAD
+Idciu = cuenta.get("Ciudad").get("id");
+ciurecord = zoho.crm.getRecordById("Ciudades",Idciu);
+codciu = ciurecord.get("C_digo_de_Ciudad");
+cliente.put("p_cod_ciudad",codciu);
+// ------------------------------------------------
+// OBTENER ID DEPARTAMENTO
+Iddepa = cuenta.get("Departamento").get("id");
+deparecord = zoho.crm.getRecordById("Departamentos",Iddepa);
+coddepa = deparecord.get("C_digo_de_Departamento");
+cliente.put("p_cod_dpto",coddepa);
+// ------------------------------------------------
+// OBTENER ID TIPO DE CLIENTE
+Idtipocliente = cuenta.get("Tipo_de_Cliente").get("id");
+tipoclienterecord = zoho.crm.getRecordById("Tipos_de_Cliente",Idtipocliente);
+codTipocliente = tipoclienterecord.get("Cod_Tipo_Cliente");
+cliente.put("p_tip_cliente",codTipocliente);
+// ----------------------------------------------
+// OBTENER ID SUBTIPO DE CLIENTE
+Idsubtipo = cuenta.get("Subtipo_Cliente").get("id");
+subtiporecord = zoho.crm.getRecordById("Subtipos_de_Cliente",Idsubtipo);
+codsubtipo = subtiporecord.get("Cod_Subtipo");
+cliente.put("p_subtip_cliente",codsubtipo);
+// ----------------------------------------------
+// OBTENER ID LISTA DE PRECIO
+Idlista = cuenta.get("Lista_de_Precio").get("id");
+listarecord = zoho.crm.getRecordById("Price_Books",Idlista);
+codlista = listarecord.get("Cod_Lista_de_Precio");
+cliente.put("p_cod_lista_precio",codlista);
+// OBTENER CONDICION DE VENYA
+Idcondi = cuenta.get("Condicion_de_Pago").get("id");
+condirecord = zoho.crm.getRecordById("Condiciones_de_Pago",Idcondi);
+codcondi = condirecord.get("Codigo");
+cliente.put("p_cond_venta",codcondi);
+// OBTENER VENDEDOR
+Idvendedor = cuenta.get("Vendedor").get("id");
+venderecord = zoho.crm.getRecordById("Vendedores",Idvendedor);
+codvende = venderecord.get("C_digo");
+cliente.put("p_cod_vendedor",codcondi);
+try 
+{
+	// 	Verificar si el cliente ya existe por número de cédula
+	existe_response = invokeurl
+	[
+		url :"http://190.110.230.161:8282/clients?codCliente=" + Codcliente
+		type :GET
+		headers:headers
+	];
+	if(existe_response != null)
+	{
+		// Actualizar cliente
+		update_response = invokeurl
+		[
+			url :"http://190.110.230.161:8282/clients?codCliente=" + Codcliente
+			type :PUT
+			parameters:cliente
+			headers:headers
+		];
+		info "Respuesta actualización: " + update_response;
+	}
+	if(Codcliente == null)
+	{
+		// Crear cliente
+		create_response = invokeurl
+		[
+			url :"http://190.110.230.161:8282/clients"
+			type :POST
+			parameters:cliente
+			headers:headers
+		];
+		info "Respuesta creación: " + create_response;
+		mensaje = create_response.get("message");
+		nuevoCodCliente = mensaje.getSuffix("Cliente :").trim();
+		info "Código Cliente: " + nuevoCodCliente;
+		updateMap = Map();
+		updateMap.put("Cod_Cliente",nuevoCodCliente);
+		zoho.crm.updateRecord("Accounts",IDzoho,updateMap);
+	}
+}
+catch (e)
+{
+	info e;
+}
+}
