@@ -1,0 +1,42 @@
+void schedule.Novedade_condicionventa()
+{
+username = "todocostura";
+password = "TC0stur4!";
+credentials = username + ":" + password;
+encoded_credentials = zoho.encryption.base64Encode(credentials);
+headers = Map();
+headers.put("Authorization","Basic " + encoded_credentials);
+headers.put("Content-Type","application/json");
+idZoho = null;
+api_url = "http://190.110.230.161:8282/salesConditions";
+response = invokeurl
+[
+	url :api_url
+	type :GET
+	headers:headers
+];
+if(response != null && response.size() > 0)
+{
+	for each  record in response
+	{
+		data = Map();
+		idCondicion = record.get("idCondicion");
+		data.put("Codigo",idCondicion);
+		data.put("Name",record.get("descripcion"));
+		data.put("idZoho",record.get("idZoho"));
+		data.put("esCuotaEspecial",record.get("esCuotaEspecial"));
+		searchResponse = zoho.crm.searchRecords("Condiciones_de_Pago","(Codigo:equals:" + idCondicion + ")");
+		if(searchResponse.size() > 0)
+		{
+			condicionId = searchResponse.get(0).get("id");
+			updateResponse = zoho.crm.updateRecord("Condiciones_de_Pago",condicionId,data);
+			info "Condicion " + idCondicion + " actualizado: " + updateResponse;
+		}
+		else
+		{
+			createResponse = zoho.crm.createRecord("Condiciones_de_Pago",data);
+			info "Condicion " + idCondicion + " creado: " + createResponse;
+		}
+	}
+}
+}
