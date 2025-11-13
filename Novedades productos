@@ -1,0 +1,91 @@
+void schedule.novedades_productos()
+{
+iterationCount = 5;
+iterationString = "".leftPad(iterationCount);
+iterationString = iterationString.replaceAll(" ",",");
+listPads = iterationString.toList();
+username = "todocostura";
+password = "TC0stur4!";
+credentials = username + ":" + password;
+encoded_credentials = zoho.encryption.base64Encode(credentials);
+fecha_hoy = today.toString("dd-MM-yyyy");
+info fecha_hoy;
+headers = Map();
+headers.put("Authorization","Basic " + encoded_credentials);
+headers.put("Content-Type","application/json");
+for each  el in listPads
+{
+	url_alta = "http://190.110.230.161:8282/products?fechaAlta=" + fecha_hoy;
+	url_mod = "http://190.110.230.161:8282/products?fechaMod=" + fecha_hoy;
+	response_alta = invokeurl
+	[
+		url :url_alta
+		type :GET
+		headers:headers
+	];
+	response_mod = invokeurl
+	[
+		url :url_mod
+		type :GET
+		headers:headers
+	];
+	// Combinar ambas respuestas en una lista sin duplicados
+	productos = List();
+	codigos_agregados = List();
+	for each  record in response_alta
+	{
+		cod = record.get("codArticulo");
+		if(!codigos_agregados.contains(cod))
+		{
+			productos.add(record);
+			codigos_agregados.add(cod);
+		}
+	}
+	for each  record in response_mod
+	{
+		cod = record.get("codArticulo");
+		if(!codigos_agregados.contains(cod))
+		{
+			productos.add(record);
+			codigos_agregados.add(cod);
+		}
+	}
+	// Procesar productos
+	for each  record in productos
+	{
+		data = Map();
+		codarticulo = record.get("codArticulo");
+		data.put("Product_Code",codarticulo);
+		data.put("Product_Name",record.get("descripcion"));
+		data.put("Rubro",record.get("descRubro"));
+		data.put("Marca",record.get("descMarca"));
+		data.put("Sector",record.get("descSector"));
+		data.put("TIpo_de_M_quina",record.get("descTipoMaquina"));
+		data.put("Clase",record.get("descClase"));
+		data.put("Familia",record.get("descFamilia"));
+		data.put("SubFamilia",record.get("descSubfamilia"));
+		data.put("Color",record.get("descColor"));
+		data.put("Modelo_de_Productos2",record.get("descModelo"));
+		data.put("Submodelo_de_Productos2",record.get("descSubmodelo"));
+		data.put("Unidad_de_medida",record.get("descUnidadMedida"));
+		data.put("Presentacion",record.get("descPresentacion"));
+		data.put("Maneja_Serie",record.get("manejaSerie"));
+		data.put("Peso",record.get("peso"));
+		data.put("Largo",record.get("largo"));
+		data.put("Ancho",record.get("ancho"));
+		data.put("Alto",record.get("alto"));
+		searchResponse = zoho.crm.searchRecords("Products","(Product_Code:equals:" + codarticulo + ")");
+		if(searchResponse.size() > 0)
+		{
+			productId = searchResponse.get(0).get("id");
+			updateResponse = zoho.crm.updateRecord("Products",productId,data);
+			info "Producto " + codarticulo + " actualizado: " + updateResponse;
+		}
+		else
+		{
+			createResponse = zoho.crm.createRecord("Products",data);
+			info "Producto " + codarticulo + " creado: " + createResponse;
+		}
+	}
+}
+}
